@@ -633,8 +633,16 @@ Nous allons maintenant générer un jar par ajout de la dépendance suivant dans
 $ java -jar target/tp0-SHADED.jar
 ....
 
-
 == Acte IV : CI/CD
 
-== Acte V: Pipeline in Action
+Récupérez le fichier d'intégration continue `pipeline.yml` du répertoire ùtils` et mettez-le dans le répertoire `.github/workflows` de votre dépôt.
+
+Etudiez-le et regardez-le fonctionner sur votre dépôt au prochain push.
+
+.Artefact récupérable généré par intégration continue
+image::ci.png["Résultat du CI"]
+
+== Pour aller plus loin
+
+Si vous avez suivi toutes les étapes précédentes et voulez aller plus loin (utilisation de docker, déploiement sur Heroku, etc.), n'hésitez pas à consulter la fin du tuto qui a servi de base à ce TP : https://github.com/ace-lectures/re21-devops.
 
