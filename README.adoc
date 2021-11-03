@@ -25,12 +25,8 @@ NOTE: TP inspiré du tutoriel réalisé avec mailto:mosser.sebastien@uqam.ca[Sé
 - Créer une simple application java (commende de boissons)
 - Créer des tests d'acceptation
 - Mettre en oeuvre l'intégration continue (CI -- _Continous Integration_)
-- Mettre en oeuvre le déploiement continue (CD -- _Continuous Deployment_)
-- Déployer l'application à distance
 
 == Prérequis
-
-=== Sur votre ordi :
 
   - Java 16
   - Maven 3
@@ -38,14 +34,12 @@ NOTE: TP inspiré du tutoriel réalisé avec mailto:mosser.sebastien@uqam.ca[Sé
   - Docker
   - Heroku CLI tools
 
-=== À distance
-
-  - GitHub account: [https://github.com/join](https://github.com/join)
-    - to host our code and execute the CI/CD pipeline 
-  - Docker Hub account: [https://hub.docker.com/signup](https://hub.docker.com/signup)
-    - to store our Docker image publicly (release)
-  - Heroku account: [https://signup.heroku.com/](https://signup.heroku.com/)
-    - to host our running aplication (deployment) 
+//------------------------------------ 
+//------------------------------------ 
+//------------------------------------ 
+//------------  Let's START----------- 
+//------------------------------------ 
+//------------------------------------ 
 
 == Acte I : l'environement technique
 
