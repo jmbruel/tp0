@@ -1,0 +1,640 @@
+= Design Patterns - TP 0
+J.-M. Bruel <jbruel@gmail.com>
+v21.1 {localdate}
+:tdnum: TP0
+:imagesdir: images
+:source-highlighter: rouge
+//------------------------- variables de configuration
+:icons: font
+:experimental:
+:numbered!:
+// Specific to GitHub
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+
+NOTE: TP inspiré du tutoriel réalisé avec mailto:mosser.sebastien@uqam.ca[Sébastien Mosser] (UQAM) pour la conférence https://github.com/ace-lectures/re21-devops[RE 2021].
+
+== Objectifs
+
+- Créer une simple application java (commende de boissons)
+- Créer des tests d'acceptation
+- Mettre en oeuvre l'intégration continue (CI -- _Continous Integration_)
+- Mettre en oeuvre le déploiement continue (CD -- _Continuous Deployment_)
+- Déployer l'application à distance
+
+== Prérequis
+
+=== Sur votre ordi :
+
+  - Java 16
+  - Maven 3
+  - Git
+  - Docker
+  - Heroku CLI tools
+
+=== À distance
+
+  - GitHub account: [https://github.com/join](https://github.com/join)
+    - to host our code and execute the CI/CD pipeline 
+  - Docker Hub account: [https://hub.docker.com/signup](https://hub.docker.com/signup)
+    - to store our Docker image publicly (release)
+  - Heroku account: [https://signup.heroku.com/](https://signup.heroku.com/)
+    - to host our running aplication (deployment) 
+
+== Acte I : l'environement technique
+
+=== Créer un projet Maven
+
+. Repérez le fichier `pom.xml`, livré avec votre projet github pour stocker le _Project Object Model_ (les détails de votre application et de comment elle se construit). 
+Ce fichier décrit de manière déclarative les dépendances et autres outils de build utilisés pour cette application. 
++
+NOTE: Si vous préferrez utiliser Gradle, pas de soucis, cherchez juste les bonnes dépendances adéquates.
++
+.Contenu du fichier `pom.xml`
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <groupId>io.github.ace-lectures</groupId>
+    <artifactId>re-21</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>RE 2021 tutorial</name>
+    <packaging>jar</packaging>
+    
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>16</source>
+                    <target>16</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    
+</project>
+----
+
+. Testez-le en tapant `mvn clean` dans un bash :
++
+....
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------------< io.iut-blagnac.f21:tp0 >-----------------------
+[INFO] Building TP0 1.0-SNAPSHOT
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:2.5:clean (default-clean) @ tp0 ---
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.222 s
+[INFO] Finished at: 2021-11-03T18:11:43+01:00
+[INFO] ------------------------------------------------------------------------
+....
++
+Ce fichier précise qu'on utilise Java 16 avec des fichiers encod&és en UTF-8 (changez si ce n'est pas votre cas).
+
+. Créez une arborescence simple : `src/main/java` et `src/test/java`, utilisée par convention par Maven pour les emplacements des codes sources et de test.
+
+. Importez maintenant ce "projet maven" dans votre IDE favori.
+
+. Ajoutez une classe `Main` minimaliste (dans src/main/java` bien sûr) :
++
+[source,java]
+----
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("TP0, c'est partim!");
+    }
+}
+----
+
+. Lancez le build :
++
+....
+$ mvn clean package
+....
++
+Ce qui doit donner :
++
+....
+...
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  1.476 s
+[INFO] Finished at: 2021-11-03T18:21:18+01:00
+[INFO] ------------------------------------------------------------------------
+....
+
+. Exécuter le résultat du build :
+....
+$ mvn -q exec:java -Dexec.mainClass=Main
+TP0, c'est parti !
+....
+
+NOTE: Notez l'utilisation du `-q` qui permet de rendre maven moins verbeux (_quiet_).
+
+== Acte II : les scénarios d'acceptation
+
+=== Objectifs
+
+Nous souhaitons implémenter les 3 User Stories suivantes :
+
+- *En tant que* Romeo, *Je veux* créer une commande vide pour Juliette *Afin que* je puisse ajouter ensuite des boissons.
+- *En tant que* Romeo, *Je veux* ajouter des boissons à une commande *Afin que* je puisse les boire.
+- *En tant que* Romeo, *Je veux* payer une commande *Afin que* je n'aille pas en prison.
+
+=== TDD
+
+Pour tester l'approche _Test-Driven Development_, nous allons commencer par créer les tests unitaires.
+
+1. Commençons par indiquer à Maven que nous allons utiliser JUnit, en ajoutant la dépendance suivante : 
++
+[source,xml]
+----
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+----
+
+. Réalisez un test pour la 1ère US : *En tant que* Romeo, *Je veux* créer une commande vide pour Juliette *Afin que* je puisse ajouter ensuite des boissons.
++
+Le test va vérifier que, quand une commande (`order`) est créé par Roméo pour Juliette, elle est vide par défaut. 
+Créez une classe `OrderUnitTest` dans `src/test/java` :
++
+[source,java]
+----
+import org.junit.Test;
+import java.util.List;
+import static org.junit.Assert.assertEquals;
+
+public class OrderUnitTest {
+    
+    @Test public void empty_order_by_default(){
+        Order o = new Order();
+        o.setOwner("Romeo"); 
+        o.setRecipient("Juliet");
+        List<Order.Drink> drinks = o.getDrinks();
+        assertEquals(0, drinks.size());
+    }
+    
+}
+----
+
+. En utilisant les _quickfix_ et autres astuces de votre éditeur préféré, ajoutez les classes et méthodes manquantes.
++
+Voici un début pour la classe `Order` :
++
+[source,java]
+----
+import java.util.List;
+import java.util.LinkedList;
+
+public class Order {
+
+    public void setOwner(String who) { /* ...*/ }
+    public void setRecipient(String who) { /* ...*/ }
+    public List<Order.Drink> getDrinks() { return new LinkedList<>(); }
+
+    static class Drink { 
+        public Drink(String name){ }  
+    }
+    
+}
+----
+
+. Puis exécutez les tests :
++
+....
+$ mvn -q test
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+Running OrderUnitTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.063 sec
+
+Results :
+
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  1.964 s
+[INFO] Finished at: 2021-11-03T18:50:13+01:00
+[INFO] ------------------------------------------------------------------------
+....
+
+=== BDD
+
+Passons maintenant à un autre type de tests :
+
+. Ajouter la dépendance `Cucumber` dans votre `pom.xml` :
++
+[source,xml]
+----
+    <dependency>
+        <groupId>io.cucumber</groupId>
+        <artifactId>cucumber-java</artifactId>
+        <version>6.11.0</version>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+         <groupId>io.cucumber</groupId>
+         <artifactId>cucumber-junit</artifactId>
+         <version>6.11.0</version>
+         <scope>test</scope>
+    </dependency>
+
+----
+
+. Activez Cucumber dans votre projet
++
+Pour compléter le test JUnit précédent et réaliser des tests d'acceptation, nous devons activer le framework cucumber. 
+On va indiquer à l'exécution Junit de faire une passerelle (appelé `RunCucumberTest`) vers l'exécution de ces tests.
++
+Pour cela, créer une classe `RunCucumberTest` dans `src/test/java` :
++
+[source,java]
+----
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+import org.junit.runner.RunWith;
+
+@RunWith(Cucumber.class)
+@CucumberOptions(plugin = {"pretty"})
+public class RunCucumberTest {}
+----
+
+. Créee un répertoire `src/test/resources` et un fichier  `ordering.feature` à l'intérieur. 
+Ce ficier va décrire notre scénario d'acceptation :
++
+[source,gherkin]
+----
+Feature: Ordering drinks
+
+  Scénario: Creating an empty order
+    Étant donné Romeo who wants to create an Order
+    Lorsque Juliet is declared as recipient
+    Alors the order does not contain any drinks
+----
++
+WARNING: Nous écrivons les tests en anglais pour rester cohérents avec le code source, mais non seulement nous aurions pu les écrire en français, mais en plus le langage utilisé par cucumber (Gherkin) est compatible avec les mots-clés français (Scénario-Etant donné-Quand-Alors).
+
+. Si vous exécutez ce test (`mvn test`) vos aurez des erreurs, et c'est normal puisque cucumber ne peut pas savoir ce que veut dire les phrases (_the order does not contain any drinks_ par exemple).
+En lisant les erreurs liées au test vous verrez que cucumber vous propose les éléments qu'il lui manque.
+Vous n'avez qu'à copier/coller ces "steps" dans une classe dédiée, `StepDefinitions` dans `src/test/Java` :
++
+[source,java]
+----
+import io.cucumber.java.en.*;
+import java.util.List;
+import static org.junit.Assert.*;
+
+public class StepDefinitions {
+
+    private Order o;
+
+    @Given("Romeo who wants to create an Order")
+    public void romeo_who_wants_to_create_an_order() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+    @Then("Juliet is declared as recipient")
+    public void juliet_is_declared_as_recipient() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+    @When("the order does not contain any drinks")
+    public void the_order_does_not_contain_any_drinks() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+}
+----
+
+. Exécutez à nouveau les tests :
++
+....
+$ mvn -q test
+...
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+Running OrderUnitTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.046 sec
+Running RunCucumberTest
+
+Scenario: Creating an empty order            # ordering.feature:3
+  Given Romeo who wants to create an Order   # StepDefinitions.creating_an_order()
+  Then Juliet is declared as recipient       # StepDefinitions.declaring_recipient()
+  When the order does not contain any drinks # StepDefinitions.check_emptiness()
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.371 sec
+...
+....
+
+=== Nouvelle US
+
+Implémentons maintenant la User Story suivante (En tant que Romeo, Je veux ajouter des boissons à une commande Afin que je puisse les boire).
+
+. Ajoutez un nouveau scénario dans `ordering.feature` :
++
+[source,gherkin]
+----
+Scenario: Adding a drink to an order
+  Given Tom who wants to create an Order
+  When Jerry is declared as recipient
+    And a "PepsaCola Zero" is added to the order
+  Then the order contains 1 drink
+----
+
+. Exécutez les tests (`mvn test`) et constatez qu'il va être pénible d'implémenter tous les "steps" qui se ressemblent (ici Tom ou Romeo par exemple)
+
+=== Améliorations des tests
+
+Passons maintenant à la vitesse supérieur en utilisant la puissance de Gherkin en améliorant les tests d'acceptation et en implémentant de manière plus judicieuse les autres US.
+
+. Remplacez la définition du step `@Given("Romeo who wants to create an Order")` par le code plus générique suivant :
++
+[source,java]
+----
+@Given("{word} who wants to create an Order")
+public void creating_an_order(String who) {
+    o = new Order();
+    o.setOwner(who);
+}
+----
+
+. Faites de même (sans solution donnée cette fois) pour le step `@When("Juliet is declared as recipient")`.
+
+. Et ajoutez les 2 steps manquants :
++
+[source,java]
+----
+@When("a {string} is added to the order")
+public void add_drink_to_the_order(String drinkName){
+    o.getDrinks().add(new Order.Drink(drinkName));
+}
+
+@Then("the order contains {int} drink")
+public void check_order_size(int size) {
+    assertEquals(size, o.getDrinks().size());
+}
+----
+
+. Ce code ne compile pas puisqu'il manque l'initialisation de la liste.
+Ajoutez donc à la classe `Order` :
++
+[source,java]
+----
+private List<Drink> contents = new LinkedList<>();
+...
+public List<Drink> getDrinks() { return contents; }    
+----
++
+WARNING: Ce code n'est vraiment pas bon d'un point de vue objet, mais nous allons vite à l'essentiel pour l'instant.
+
+=== Expressions régulières
+
+Imaginez que nous souhaitions tester le scénario suivant :
+
+[source,gherkin]
+----
+Scenario: Checking the contents of an order
+  Given Seb who wants to create an Order
+  When Jean-Michel is declared as recipient
+    And a "PepsaCoke Zero" is added to the order
+    And a "DietCola Max" is added to the order
+    And another "PepsaCoke Zero" is added to the order
+  Then the order contains 3 drinks
+    And the order contains 2 "PepsaCoke Zero"
+    And the order contains 1 "DietCola Max"
+----
+
+. Améliorer la classe `Drink` :
++
+[source,java]
+----
+static class Drink {
+    public Drink(String name){ this.name = name; }
+    private String name;
+    public String getName() { return name; }
+}
+----
+
+. Utilisons les expressions régulières pour supporter le pluriel dans les steps (e.g., drinks, another drink)
++
+[source,gherkin]
+----
+@When("a(nother?) {string} is added to the order")
+public void add_drink_to_the_order(String drinkName){ /* ... */ }
+
+@Then("the order contains {int} drink(s?)")
+public void check_order_size(int size) { /* ... */ }
+----
+
+. Finalement, ajouter le step qui permet de compter les boissons :
++
+[source,gherkin]
+----
+@Then("the order contains {int} {string}")
+public void check_order_contents(int size, String drink) {
+    long count = o.getDrinks().stream()
+                  .filter(d -> d.getName().equals(drink))
+                  .count();
+    assertEquals(size,count);
+}
+----
+
+== Acte III : utilisation des conteneurs
+
+Nous allons maintenant faire en sorte que nos méthodes soient accessibles de l'extérieur (API) et nous allons construire une interface REST simple pour manipuler cette API.
+
+=== Utilisation de Jooby
+
+. Ajoutez la dépendance suivant dans votre `pom.xml` :
+
+[source,xml]
+----
+    <dependency>
+      <groupId>io.jooby</groupId>
+      <artifactId>jooby-netty</artifactId>
+      <version>2.11.0</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.2.6</version>
+    </dependency>
+----
+
+=== Rendre nos classes plus "présentables"
+
+Ajoutez les méthodes suivantes à `Order` :
+
+[source, java]
+----
+private String owner;
+public void setOwner(String who) { this.owner = who; }
+
+private String recipient;
+public void setRecipient(String who) { this.recipient = who; }
+
+@Override
+public String toString() {
+    return "Order: " + owner + " / " + recipient + " / { " + contents + "}";
+}
+
+static class Drink {
+    // ...
+    @Override public String toString() { return name; }
+}
+----
+
+=== Encapsulons notre application dans un service
+
+Nous voulons pouvoir accéder à nos méthodes via une API REST simple :
+
+- `GET /` : le simple "hello world" d'accueil
+- `GET /orders` : liste des commandes en cours
+- `GET /orders/{owner}/{recipient}/{drink}` : ajouter une commande à la liste
+
+WARNING: la dernière route devrait être un POST, mais encore une fois, nous simplifions.
+
+. Créez une classe `Service` qui implémente cette API :
++
+[source, java]
+----
+qimport io.jooby.Jooby;
+import java.util.LinkedList;
+import java.util.List;
+
+public class Service extends Jooby {
+
+    public static void main(String[] args) { runApp(args, Service::new); }
+
+    {
+        get("/", ctx -> "Welcome to our drink ordering system");
+        get("/orders", ctx -> getAllOrders() );
+        get("/orders/{owner}/{recipient}/{drink}", ctx -> {
+            Order o = addOrder(ctx.path("owner").value(),
+                               ctx.path("recipient").value(),
+                               ctx.path("drink").value());
+            return "added " + o;
+        });
+    }
+
+    private final List<Order> orders = new LinkedList<>();
+
+    public String getAllOrders() { 
+        return ""; 
+    }
+
+    public Order addOrder(String owner, String recipient, String drinkName) {
+        return null;
+    }    
+}
+----
+
+. Compilez sans lancer les tests pour gagner du temps :
++
+....
+$ mvn clean package -DskipTests
+....
++
+Tester l'API sur le serveur lancé par l'exécution (certainement http://localhost:8080/orders)
+
+. Maintenant il ne nous reste plus qu'à lier nos méthodes aux services :
++
+[source,java]
+----
+public String getAllOrders() {
+    if(orders.isEmpty())
+        return "Nothing to show";
+    return orders.stream()
+                 .map(Order::toString)
+                 .reduce("",(s1,s2) -> s1 +"\n" + s2);
+}
+
+public Order addOrder(String owner, String recipient, String drinkName) {
+    Order o = new Order();
+    o.setOwner(owner);
+    o.setRecipient(recipient);
+    o.getDrinks().add(new Order.Drink(drinkName));
+    orders.add(o);
+    return o;
+}
+---- 
+
+. Testez l'API après avoir compilé de nouveau et lancé l'exécution du service :
+
+- http://localhost:8080/ (doit afficher le message d'accueil)
+http://localhost:8080/orders (doit afficher une liste vide)
+http://localhost:8080/orders/seb/jmb/coke (cliquez plusieurs fois ou changez les paramètres)
+http://localhost:8080/orders (doit afficher cette fois une commande non vide)
+
+=== Rendre le service exécutable
+
+Nous allons maintenant générer un jar par ajout de la dépendance suivant dans la partie build du `pom.xml` :
+
+[source,xml]
+----
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-shade-plugin</artifactId>
+      <version>3.2.4</version>
+      <executions>
+        <execution>
+          <phase>package</phase>
+          <goals>
+            <goal>shade</goal>
+          </goals>
+          <configuration>
+            <finalName>${project.artifactId}-SHADED</finalName>
+            <transformers>
+              <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                <mainClass>Service</mainClass>
+              </transformer>
+            </transformers>
+          </configuration>
+        </execution>
+      </executions>
+    </plugin>
+----
+
+. Exécutez le jar généré :
++
+....
+$ java -jar target/tp0-SHADED.jar
+....
+
+
+== Acte IV : CI/CD
+
+== Acte V: Pipeline in Action
+
