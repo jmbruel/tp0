@@ -117,7 +117,7 @@ Ce fichier précise qu'on utilise Java 16 avec des fichiers encod&és en UTF-8 (
 ----
 public class Main {
     public static void main(String[] args) {
-        System.out.println("TP0, c'est partim!");
+        System.out.println("TP0, c'est parti !");
     }
 }
 ----
