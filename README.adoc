@@ -292,10 +292,10 @@ Ce ficier va décrire notre scénario d'acceptation :
 ----
 Feature: Ordering drinks
 
-  Scénario: Creating an empty order
-    Étant donné Romeo who wants to create an Order
-    Lorsque Juliet is declared as recipient
-    Alors the order does not contain any drinks
+  Scenario: Creating an empty order
+    Given Romeo who wants to create an Order
+    When Juliet is declared as recipient
+    Then the order does not contain any drinks
 ----
 +
 WARNING: Nous écrivons les tests en anglais pour rester cohérents avec le code source, mais non seulement nous aurions pu les écrire en français, mais en plus le langage utilisé par cucumber (Gherkin) est compatible avec les mots-clés français (Scénario-Etant donné-Quand-Alors).
@@ -336,6 +336,38 @@ public class StepDefinitions {
 +
 ....
 $ mvn -q test
+....
++
+Ces tests ne passent bien évident pas puisque ce sont des squelettes vides. Il faut maintenant les lier à notre code.
+
+. Modifiez le code afin qu'il fasse ce que le code est censé exécuter pour ces "steps" :
++
+[source,java]
+----
+@Given("Romeo who wants to create an Order")
+public void creating_an_order() {
+    o = new Order(); 
+    o.setOwner("Romeo");
+}
+
+@When("Juliet is declared as recipient")
+public void declaring_recipient(){ 
+  o.setRecipient("Juliet");  
+}
+
+@Then("the order does not contain any drinks")
+public void check_emptiness() {
+    List<Order.Drink> drinks = o.getDrinks();
+    assertEquals(0, drinks.size());
+}
+----
++
+NOTE: Notez l'utilisation des assertions dans les directives `@Then`...
+
+. Exécutez à nouveau les tests :
++
+....
+$ mvn -q test
 ...
 -------------------------------------------------------
  T E S T S
@@ -351,6 +383,8 @@ Scenario: Creating an empty order            # ordering.feature:3
 Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.371 sec
 ...
 ....
+
+Tout de vrai cette fois bien fonctionner.
 
 === Nouvelle US
 
@@ -524,7 +558,7 @@ WARNING: la dernière route devrait être un POST, mais encore une fois, nous si
 +
 [source, java]
 ----
-qimport io.jooby.Jooby;
+import io.jooby.Jooby;
 import java.util.LinkedList;
 import java.util.List;
 
