@@ -45,7 +45,7 @@ NOTE: TP inspiré du tutoriel réalisé avec mailto:mosser.sebastien@uqam.ca[Sé
 
 === Créer un projet Maven
 
-. Repérez le fichier `pom.xml`, livré avec votre projet github pour stocker le _Project Object Model_ (les détails de votre application et de comment elle se construit). 
+. Créez à la racine de votre dépôt un fichier `pom.xml`, pour stocker le _Project Object Model_ (les détails de votre application et de comment elle se construit). 
 Ce fichier décrit de manière déclarative les dépendances et autres outils de build utilisés pour cette application. 
 +
 NOTE: Si vous préferrez utiliser Gradle, pas de soucis, cherchez juste les bonnes dépendances adéquates.
@@ -60,10 +60,10 @@ NOTE: Si vous préferrez utiliser Gradle, pas de soucis, cherchez juste les bonn
          http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     
-    <groupId>io.github.ace-lectures</groupId>
-    <artifactId>re-21</artifactId>
+    <groupId>io.iut-blagnac.cpoa</groupId>
+    <artifactId>tp0</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <name>RE 2021 tutorial</name>
+    <name>CPOA TP0</name>
     <packaging>jar</packaging>
     
     <properties>
