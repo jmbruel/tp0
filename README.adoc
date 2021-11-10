@@ -28,7 +28,7 @@ NOTE: TP inspiré du tutoriel réalisé avec mailto:mosser.sebastien@uqam.ca[Sé
 
 == Prérequis
 
-  - Java 16
+  - *Java JDK 16*
   - Maven 3
   - Git
   - Docker
@@ -41,14 +41,14 @@ NOTE: TP inspiré du tutoriel réalisé avec mailto:mosser.sebastien@uqam.ca[Sé
 //------------------------------------ 
 //------------------------------------ 
 
-== Acte I : l'environement technique
+== Acte I : l'environnement technique
 
 === Créer un projet Maven
 
 . Créez à la racine de votre dépôt un fichier `pom.xml`, pour stocker le _Project Object Model_ (les détails de votre application et de comment elle se construit). 
 Ce fichier décrit de manière déclarative les dépendances et autres outils de build utilisés pour cette application. 
 +
-NOTE: Si vous préferrez utiliser Gradle, pas de soucis, cherchez juste les bonnes dépendances adéquates.
+NOTE: Si vous préférez utiliser Gradle, pas de soucis, cherchez juste les bonnes dépendances adéquates.
 +
 .Contenu du fichier `pom.xml`
 [source,xml]
@@ -142,7 +142,7 @@ Ce qui doit donner :
 
 . Exécuter le résultat du build :
 ....
-$ mvn -q exec:java -Dexec.mainClass=Main
+$ mvn -q exec:java -D"exec.mainClass=Main"
 TP0, c'est parti !
 ....
 
@@ -285,7 +285,18 @@ import org.junit.runner.RunWith;
 public class RunCucumberTest {}
 ----
 
-. Créee un répertoire `src/test/resources` et un fichier  `ordering.feature` à l'intérieur. 
+[WARNING]
+====
+Il se peut que vous aillez à modifier la ligne suivante dans ce fichier :
+
+[source,java]
+----
+@CucumberOptions(plugin = {"pretty", features="src\\test\\resources"})
+----
+
+====
+
+. Créez un répertoire `src/test/resources` et un fichier  `ordering.feature` à l'intérieur. 
 Ce ficier va décrire notre scénario d'acceptation :
 +
 [source,gherkin]
